@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Phone, Calendar, AlertTriangle, Clock, MapPin, Building, CheckCircle } from 'lucide-react';
+import { AlertTriangle, Clock, MapPin, HeartPulse as Pulse, User, Phone, Heart, Building, CheckCircle, Upload } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import SearchLocationInput from '../components/common/SearchLocationInput';
 import BloodTypeCard from '../components/common/BloodTypeCard';
@@ -31,18 +31,46 @@ const RequestBloodPage = () => {
       ward: ''
     },
     additionalInfo: '',
+    prescription: null,
+    prescriptionPreview: '',
     agreedToTerms: false
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   
   const handleInputChange = (e) => {
-    const { name, value, type } = e.target;
+    const { name, value, type, files } = e.target;
     
-    setFormData({
-      ...formData,
-      [name]: type === 'checkbox' ? (e.target).checked : value
-    });
+    if (type === 'file') {
+      if (files && files[0]) {
+        // Check file type
+        const file = files[0];
+        if (!file.type.startsWith('image/')) {
+          alert('Please upload an image file (JPEG, PNG, etc.)');
+          return;
+        }
+        
+        // Check file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          alert('File size should be less than 5MB');
+          return;
+        }
+        
+        // Create preview URL
+        const previewUrl = URL.createObjectURL(file);
+        
+        setFormData({
+          ...formData,
+          prescription: file,
+          prescriptionPreview: previewUrl
+        });
+      }
+    } else {
+      setFormData({
+        ...formData,
+        [name]: type === 'checkbox' ? e.target.checked : value
+      });
+    }
   };
   
   const handleBloodTypeSelect = (type, rhFactor) => {
@@ -84,6 +112,11 @@ const RequestBloodPage = () => {
       setIsSubmitting(false);
       setIsSuccess(true);
       
+      // Clean up preview URL
+      if (formData.prescriptionPreview) {
+        URL.revokeObjectURL(formData.prescriptionPreview);
+      }
+      
       // Redirect after a delay
       setTimeout(() => {
         navigate('/');
@@ -101,7 +134,206 @@ const RequestBloodPage = () => {
     { type: 'O', rhFactor: '+' },
     { type: 'O', rhFactor: '-' },
   ];
-  
+
+  // Add prescription upload section to Step 2 (Request Information)
+  const renderPrescriptionUpload = () => (
+    <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-6">
+      <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Prescription Upload</h3>
+      
+      <div className="space-y-4">
+        <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6">
+          {formData.prescriptionPreview ? (
+            <div className="space-y-4">
+              <div className="relative aspect-[3/4] w-full max-w-sm mx-auto">
+                <img
+                  src={formData.prescriptionPreview}
+                  alt="Prescription preview"
+                  className="rounded-lg object-cover w-full h-full"
+                />
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, prescription: null, prescriptionPreview: '' })}
+                  className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                Click the X to remove and upload a different image
+              </p>
+            </div>
+          ) : (
+            <div className="text-center">
+              <Upload className="mx-auto h-12 w-12 text-gray-400" />
+              <div className="mt-4 flex text-sm text-gray-600 dark:text-gray-400">
+                <label
+                  htmlFor="prescription-upload"
+                  className="relative cursor-pointer bg-white dark:bg-gray-800 rounded-md font-medium text-red-600 dark:text-red-500 hover:text-red-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-red-500"
+                >
+                  <span>Upload prescription</span>
+                  <input
+                    id="prescription-upload"
+                    name="prescription"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleInputChange}
+                    className="sr-only"
+                  />
+                </label>
+                <p className="pl-1">or drag and drop</p>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                PNG, JPG, GIF up to 5MB
+              </p>
+            </div>
+          )}
+        </div>
+        
+        <div className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="flex items-center">
+            <AlertTriangle className="h-4 w-4 text-yellow-500 mr-2" />
+            Please ensure the prescription is clearly visible and includes:
+          </p>
+          <ul className="list-disc list-inside ml-6 mt-2 space-y-1">
+            <li>Doctor's name and signature</li>
+            <li>Hospital/Clinic details</li>
+            <li>Patient's name</li>
+            <li>Required blood type and quantity</li>
+            <li>Date of prescription</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Update Step 2 to include prescription upload
+  const renderStep2 = () => (
+    <div className="p-6">
+      <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">{t('requestInfo')}</h2>
+      
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+            Blood Type Required *
+          </label>
+          <div className="grid grid-cols-4 gap-3">
+            {bloodTypes.map((bt) => (
+              <BloodTypeCard
+                key={`${bt.type}${bt.rhFactor}`}
+                type={bt.type}
+                rhFactor={bt.rhFactor}
+                isAvailable={true}
+                onClick={() => handleBloodTypeSelect(bt.type, bt.rhFactor)}
+              />
+            ))}
+          </div>
+          {formData.bloodType && (
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+              Selected: <span className="font-medium">{formData.bloodType} {formData.rhFactor}</span>
+            </p>
+          )}
+        </div>
+        
+        <div>
+          <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Units Required *
+          </label>
+          <input
+            type="number"
+            id="quantity"
+            name="quantity"
+            value={formData.quantity}
+            onChange={handleInputChange}
+            min="1"
+            max="10"
+            className="block w-full py-2 px-3 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            required
+          />
+        </div>
+        
+        <div>
+          <label htmlFor="urgency" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Urgency Level *
+          </label>
+          <select
+            id="urgency"
+            name="urgency"
+            value={formData.urgency}
+            onChange={handleInputChange}
+            className="block w-full py-2 px-3 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            required
+          >
+            <option value="normal">Normal (Within days)</option>
+            <option value="urgent">Urgent (Within 24 hours)</option>
+            <option value="emergency">Emergency (Immediate)</option>
+          </select>
+        </div>
+        
+        <div>
+          <label htmlFor="requiredDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Required By Date
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Clock className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="date"
+              id="requiredDate"
+              name="requiredDate"
+              value={formData.requiredDate}
+              onChange={handleInputChange}
+              className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            />
+          </div>
+        </div>
+        
+        <div>
+          <label htmlFor="purpose" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Purpose *
+          </label>
+          <select
+            id="purpose"
+            name="purpose"
+            value={formData.purpose}
+            onChange={handleInputChange}
+            className="block w-full py-2 px-3 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            required
+          >
+            <option value="">Select Purpose</option>
+            <option value="surgery">Surgery</option>
+            <option value="accident">Accident</option>
+            <option value="pregnancy">Pregnancy/Childbirth</option>
+            <option value="anemia">Anemia</option>
+            <option value="cancer">Cancer Treatment</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        {renderPrescriptionUpload()}
+      </div>
+      
+      <div className="mt-8 flex justify-between">
+        <button
+          type="button"
+          onClick={prevStep}
+          className="inline-flex justify-center py-2 px-6 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-white bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+        >
+          Previous
+        </button>
+        <button
+          type="button"
+          onClick={nextStep}
+          className="ml-3 inline-flex justify-center py-2 px-6 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
@@ -316,128 +548,7 @@ const RequestBloodPage = () => {
               )}
               
               {/* Step 2: Request Information */}
-              {currentStep === 2 && (
-                <div className="p-6">
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">{t('requestInfo')}</h2>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                        Blood Type Required *
-                      </label>
-                      <div className="grid grid-cols-4 gap-3">
-                        {bloodTypes.map((bt) => (
-                          <BloodTypeCard
-                            key={`${bt.type}${bt.rhFactor}`}
-                            type={bt.type}
-                            rhFactor={bt.rhFactor}
-                            isAvailable={true}
-                            onClick={() => handleBloodTypeSelect(bt.type, bt.rhFactor)}
-                          />
-                        ))}
-                      </div>
-                      {formData.bloodType && (
-                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                          Selected: <span className="font-medium">{formData.bloodType} {formData.rhFactor}</span>
-                        </p>
-                      )}
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Units Required *
-                      </label>
-                      <input
-                        type="number"
-                        id="quantity"
-                        name="quantity"
-                        value={formData.quantity}
-                        onChange={handleInputChange}
-                        min="1"
-                        max="10"
-                        className="block w-full py-2 px-3 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                        required
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="urgency" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Urgency Level *
-                      </label>
-                      <select
-                        id="urgency"
-                        name="urgency"
-                        value={formData.urgency}
-                        onChange={handleInputChange}
-                        className="block w-full py-2 px-3 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                        required
-                      >
-                        <option value="normal">Normal (Within days)</option>
-                        <option value="urgent">Urgent (Within 24 hours)</option>
-                        <option value="emergency">Emergency (Immediate)</option>
-                      </select>
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="requiredDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Required By Date
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Calendar className="h-5 w-5 text-gray-400" />
-                        </div>
-                        <input
-                          type="date"
-                          id="requiredDate"
-                          name="requiredDate"
-                          value={formData.requiredDate}
-                          onChange={handleInputChange}
-                          className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="purpose" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Purpose *
-                      </label>
-                      <select
-                        id="purpose"
-                        name="purpose"
-                        value={formData.purpose}
-                        onChange={handleInputChange}
-                        className="block w-full py-2 px-3 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                        required
-                      >
-                        <option value="">Select Purpose</option>
-                        <option value="surgery">Surgery</option>
-                        <option value="accident">Accident</option>
-                        <option value="pregnancy">Pregnancy/Childbirth</option>
-                        <option value="anemia">Anemia</option>
-                        <option value="cancer">Cancer Treatment</option>
-                        <option value="other">Other</option>
-                      </select>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-8 flex justify-between">
-                    <button
-                      type="button"
-                      onClick={prevStep}
-                      className="inline-flex justify-center py-2 px-6 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-white bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                    >
-                      Previous
-                    </button>
-                    <button
-                      type="button"
-                      onClick={nextStep}
-                      className="ml-3 inline-flex justify-center py-2 px-6 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                    >
-                      Next
-                    </button>
-                  </div>
-                </div>
-              )}
+              {currentStep === 2 && renderStep2()}
               
               {/* Step 3: Hospital Information */}
               {currentStep === 3 && (
@@ -583,6 +694,19 @@ const RequestBloodPage = () => {
                           <p className="text-sm font-medium text-gray-900 dark:text-white capitalize">{formData.purpose}</p>
                         </div>
                       </div>
+
+                      {formData.prescriptionPreview && (
+                        <div className="mt-4">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Prescription</p>
+                          <div className="mt-2 relative w-32 h-32">
+                            <img
+                              src={formData.prescriptionPreview}
+                              alt="Prescription"
+                              className="rounded-lg object-cover w-full h-full"
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
                     
                     <div>
