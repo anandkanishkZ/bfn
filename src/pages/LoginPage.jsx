@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import axios from '../utils/axiosConfig';
 
@@ -38,9 +38,9 @@ const SubmitButton = ({ loading }) => (
   >
     {loading ? (
       <span className="flex items-center">
-        <svg className="animate-spin h-5 w-5 mr-2 text-white" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-8 8v-8H4z" />
+        <svg className="animate-spin h-5 w-5 mr-2 text-white\" viewBox="0 0 24 24">
+          <circle className="opacity-25\" cx="12\" cy="12\" r="10\" stroke="currentColor\" strokeWidth="4\" fill="none" />
+          <path className="opacity-75\" fill="currentColor\" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-8 8v-8H4z" />
         </svg>
         Signing in...
       </span>
@@ -69,6 +69,8 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from || '/profile';
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -78,17 +80,18 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');    try {
+    setError('');
+    
+    try {
       const response = await axios.post('/api/auth/login', form);
       const { token, role, user } = response.data;
 
-      // Store token, user role, and user data in localStorage
       localStorage.setItem('token', token);
       localStorage.setItem('role', role);
       localStorage.setItem('user', JSON.stringify(user));
 
-      // Redirect to profile page
-      navigate('/profile');
+      // Navigate back to the original destination
+      navigate(from);
     } catch (err) {
       setLoading(false);
       console.error('Login error:', err);

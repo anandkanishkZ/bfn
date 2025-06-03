@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Phone, Mail, Calendar, Droplets, MapPin, CheckCircle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
@@ -9,7 +9,7 @@ const DonorRegistrationPage = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
-    fullName: '',
+    patientName: '',
     phoneNumber: '',
     email: '',
     dateOfBirth: '',
@@ -30,6 +30,23 @@ const DonorRegistrationPage = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user) {
+      navigate('/login', { state: { from: '/register' } });
+      return;
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      patientName: user.name || '',
+      email: user.email || '',
+      phoneNumber: user.phone || ''
+    }));
+
+    setCurrentStep(2);
+  }, [navigate]);
   
   const handleInputChange = (e) => {
     const { name, value, type } = e.target;
@@ -66,12 +83,10 @@ const DonorRegistrationPage = () => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // Simulate API call
     setTimeout(() => {
       setIsSubmitting(false);
       setIsSuccess(true);
       
-      // Redirect after a delay
       setTimeout(() => {
         navigate('/');
       }, 3000);
@@ -90,17 +105,14 @@ const DonorRegistrationPage = () => {
           </p>
         </div>
         
-        {/* Steps indicator */}
         <div className="mb-8">
           <div className="flex items-center justify-between relative">
-            {/* Progress Bar */}
             <div className="absolute top-1/2 left-0 right-0 h-1 bg-gray-200 dark:bg-gray-700 -translate-y-1/2"></div>
             <div 
               className="absolute top-1/2 left-0 h-1 bg-red-600 dark:bg-red-500 -translate-y-1/2 transition-all duration-300"
               style={{ width: `${((currentStep - 1) / 3) * 100}%` }}
             ></div>
             
-            {/* Steps */}
             <div className={`relative rounded-full w-10 h-10 z-10 flex items-center justify-center ${
               currentStep >= 1 ? 'bg-red-600 dark:bg-red-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
             }`}>
@@ -147,14 +159,13 @@ const DonorRegistrationPage = () => {
         ) : (
           <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg">
             <form onSubmit={handleSubmit}>
-              {/* Step 1: Personal Information */}
               {currentStep === 1 && (
                 <div className="p-6">
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">{t('personalInfo')}</h2>
                   
                   <div className="space-y-4">
                     <div>
-                      <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <label htmlFor="patientName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         {t('fullName')} *
                       </label>
                       <div className="relative">
@@ -163,9 +174,9 @@ const DonorRegistrationPage = () => {
                         </div>
                         <input
                           type="text"
-                          id="fullName"
-                          name="fullName"
-                          value={formData.fullName}
+                          id="patientName"
+                          name="patientName"
+                          value={formData.patientName}
                           onChange={handleInputChange}
                           className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                           required
@@ -264,7 +275,6 @@ const DonorRegistrationPage = () => {
                 </div>
               )}
               
-              {/* Step 2: Medical Information */}
               {currentStep === 2 && (
                 <div className="p-6">
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">{t('medicalInfo')}</h2>
@@ -371,7 +381,6 @@ const DonorRegistrationPage = () => {
                 </div>
               )}
               
-              {/* Step 3: Location Information */}
               {currentStep === 3 && (
                 <div className="p-6">
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">{t('locationInfo')}</h2>
@@ -428,7 +437,6 @@ const DonorRegistrationPage = () => {
                 </div>
               )}
               
-              {/* Step 4: Confirmation */}
               {currentStep === 4 && (
                 <div className="p-6">
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">Confirm Your Information</h2>
@@ -439,7 +447,7 @@ const DonorRegistrationPage = () => {
                       <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2">
                         <div>
                           <p className="text-xs text-gray-500 dark:text-gray-400">{t('fullName')}</p>
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">{formData.fullName}</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">{formData.patientName}</p>
                         </div>
                         <div>
                           <p className="text-xs text-gray-500 dark:text-gray-400">{t('phoneNumber')}</p>
