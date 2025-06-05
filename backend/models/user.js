@@ -3,9 +3,22 @@ const { Model } = require('sequelize');
 const bcrypt = require('bcrypt');
 
 module.exports = (sequelize, DataTypes) => {
-  class User extends Model {
-    static associate(models) {
+  class User extends Model {    static associate(models) {
       // define associations here
+      User.hasOne(models.Donor, {
+        foreignKey: 'user_id',
+        as: 'donor'
+      });
+      
+      User.hasMany(models.BloodRequest, {
+        foreignKey: 'user_id',
+        as: 'bloodRequests'
+      });
+      
+      User.hasMany(models.BloodRequest, {
+        foreignKey: 'approved_by',
+        as: 'approvedRequests'
+      });
     }
 
     // Method to validate password

@@ -38,9 +38,9 @@ const SubmitButton = ({ loading }) => (
   >
     {loading ? (
       <span className="flex items-center">
-        <svg className="animate-spin h-5 w-5 mr-2 text-white\" viewBox="0 0 24 24">
-          <circle className="opacity-25\" cx="12\" cy="12\" r="10\" stroke="currentColor\" strokeWidth="4\" fill="none" />
-          <path className="opacity-75\" fill="currentColor\" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-8 8v-8H4z" />
+        <svg className="animate-spin h-5 w-5 mr-2 text-white" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-8 8v-8H4z" />
         </svg>
         Signing in...
       </span>
@@ -83,14 +83,29 @@ const LoginPage = () => {
     setError('');
     
     try {
+      console.log('Login attempt with:', form.email);
       const response = await axios.post('/api/auth/login', form);
+      console.log('Login response:', response.data);
       const { token, role, user } = response.data;
 
+      // Clear any existing auth data
+      localStorage.removeItem('token');
+      localStorage.removeItem('role');
+      localStorage.removeItem('user');
+      
+      // Set new auth data
       localStorage.setItem('token', token);
       localStorage.setItem('role', role);
       localStorage.setItem('user', JSON.stringify(user));
+      
+      console.log('Stored auth data:', {
+        token: !!token,
+        role,
+        user: JSON.stringify(user)
+      });
 
       // Navigate back to the original destination
+      console.log('Navigating to:', from);
       navigate(from);
     } catch (err) {
       setLoading(false);

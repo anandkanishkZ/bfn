@@ -7,6 +7,8 @@ const db = require('./database');
 const authRoutes = require('./routes/auth');
 const profileRoutes = require('./routes/profile');
 const donorsRoutes = require('./routes/donors');
+const adminRoutes = require('./routes/admin');
+const bloodRequestsRoutes = require('./routes/bloodRequests');
 
 // Middleware
 app.use(express.json());
@@ -20,6 +22,8 @@ app.options('*', cors());
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/donors', donorsRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/blood-requests', bloodRequestsRoutes);
 
 // Debugging middleware to log incoming requests
 app.use((req, res, next) => {

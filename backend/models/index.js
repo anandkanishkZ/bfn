@@ -16,6 +16,14 @@ if (config.use_env_variable) {
   sequelize = new Sequelize(config.database, config.username, config.password, config);
 }
 
+// Explicitly require all models to ensure associations work
+const User = require('./user')(sequelize, Sequelize.DataTypes);
+const Donor = require('./donor')(sequelize, Sequelize.DataTypes);
+const BloodRequest = require('./bloodRequest')(sequelize, Sequelize.DataTypes);
+db.User = User;
+db.Donor = Donor;
+db.BloodRequest = BloodRequest;
+
 fs
   .readdirSync(__dirname)
   .filter(file => {
@@ -31,6 +39,7 @@ fs
     db[model.name] = model;
   });
 
+// Call associate for each model
 Object.keys(db).forEach(modelName => {
   if (db[modelName].associate) {
     db[modelName].associate(db);
